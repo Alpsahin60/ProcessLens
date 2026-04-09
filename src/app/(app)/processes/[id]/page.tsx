@@ -1,16 +1,14 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Clock,
   AlertTriangle,
-  Play,
   Save,
   Share2,
   History,
-  LayoutGrid,
   List,
   Calendar,
   Zap,
@@ -18,7 +16,7 @@ import {
 } from "lucide-react";
 import { Topbar } from "@/components/layout/topbar";
 import { FlowCanvas } from "@/components/process/flow-canvas";
-import { Badge } from "@/components/ui/badge";
+import { getProcess, getProcessInsights } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { PROCESSES, INSIGHTS } from "@/lib/mock-data";
 import { useAppStore } from "@/store/app-store";
@@ -35,13 +33,29 @@ const STATUS_MAP = {
 
 export default function ProcessDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const process = PROCESSES.find((p) => p.id === id);
+  const fallbackProcess = PROCESSES.find((p) => p.id === id);
+  const [process, setProcess] = useState(fallbackProcess);
+  const [insights, setInsights] = useState(INSIGHTS.filter((i) => i.processId === id));
   const [viewMode, setViewMode] = useState<ViewMode>("flow");
   const { simulationMode } = useAppStore();
 
-  if (!process) notFound();
+  useEffect(() => {
+    let active = true;
 
-  const insights = INSIGHTS.filter((i) => i.processId === id);
+    Promise.all([getProcess(id), getProcessInsights(id)]).then(([nextProcess, nextInsights]) => {
+      if (!active) return;
+      if (nextProcess) {
+        setProcess(nextProcess);
+      }
+      setInsights(nextInsights);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (!process) notFound();
   const status = STATUS_MAP[process.status];
   const criticalNodes = process.nodes.filter((n) => n.bottleneckScore >= 60);
 
@@ -93,7 +107,7 @@ export default function ProcessDetailPage({ params }: { params: Promise<{ id: st
       />
 
       {/* Process meta bar */}
-      <div className="flex items-center gap-6 px-6 py-2.5 border-b border-border bg-card/50 flex-shrink-0">
+      <div className="flex items-center gap-6 px-6 py-2.5 border-b border-border bg-card/50 shrink-0">
         <span className={cn("text-[10px] px-2 py-0.5 rounded-md font-medium border", status.cls)}>
           {status.label}
         </span>
@@ -147,7 +161,7 @@ export default function ProcessDetailPage({ params }: { params: Promise<{ id: st
                   </tr>
                 </thead>
                 <tbody>
-                  {process.nodes.map((node, i) => (
+                  {process.nodes.map((node) => (
                     <tr
                       key={node.id}
                       className="border-b border-border/50 hover:bg-white/3 transition-colors cursor-pointer"
@@ -288,7 +302,7 @@ export default function ProcessDetailPage({ params }: { params: Promise<{ id: st
 
         {/* Insights sidebar */}
         {insights.length > 0 && viewMode !== "flow" && (
-          <div className="w-72 border-l border-border overflow-y-auto scrollbar-thin p-4 flex-shrink-0">
+          <div className="w-72 border-l border-border overflow-y-auto scrollbar-thin p-4 shrink-0">
             <div className="flex items-center gap-2 mb-4">
               <Zap className="w-3.5 h-3.5 text-primary" />
               <p className="text-xs font-semibold text-foreground">Insights</p>
@@ -307,7 +321,7 @@ export default function ProcessDetailPage({ params }: { params: Promise<{ id: st
                   <div className="flex items-start gap-2 mb-1.5">
                     <AlertTriangle
                       className={cn(
-                        "w-3.5 h-3.5 flex-shrink-0 mt-0.5",
+                        "w-3.5 h-3.5 shrink-0 mt-0.5",
                         insight.severity === "critical" ? "text-red-400" : "text-amber-400"
                       )}
                     />

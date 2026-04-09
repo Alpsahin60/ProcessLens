@@ -11,15 +11,11 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Bell,
   Zap,
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PROCESSES } from "@/lib/mock-data";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -38,19 +34,19 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar, unreadCount } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, processes } = useAppStore();
 
   return (
     <motion.aside
       initial={false}
       animate={{ width: sidebarCollapsed ? 64 : 240 }}
-      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
       className="relative flex flex-col h-screen bg-sidebar border-r border-sidebar-border shrink-0 overflow-hidden"
     >
       {/* Logo */}
       <div className="flex items-center h-14 px-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="relative flex-shrink-0">
+          <div className="relative shrink-0">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center glow-primary-sm">
               <Zap className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
             </div>
@@ -74,17 +70,13 @@ export function Sidebar() {
       {/* New Process Button */}
       <div className="px-3 py-3">
         {sidebarCollapsed ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href="/processes"
-                className="flex items-center justify-center w-full h-8 rounded-md bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
-              >
-                <Plus className="w-4 h-4 text-primary" />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">New Process</TooltipContent>
-          </Tooltip>
+          <Link
+            href="/processes"
+            title="New Process"
+            className="flex items-center justify-center w-full h-8 rounded-md bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
+          >
+            <Plus className="w-4 h-4 text-primary" />
+          </Link>
         ) : (
           <Link
             href="/processes"
@@ -102,65 +94,44 @@ export function Sidebar() {
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
-              <Tooltip key={href} delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={href}
-                    className={cn(
-                      "relative flex items-center gap-3 h-9 px-2.5 rounded-md text-sm transition-all duration-150 group",
-                      active
-                        ? "bg-primary/15 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                    )}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute inset-0 rounded-md bg-primary/15"
-                        transition={{ duration: 0.2 }}
-                      />
-                    )}
-                    <Icon
-                      className={cn(
-                        "relative w-4 h-4 flex-shrink-0",
-                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                      )}
-                    />
-                    <AnimatePresence>
-                      {!sidebarCollapsed && (
-                        <motion.span
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.1 }}
-                          className="relative whitespace-nowrap font-medium"
-                        >
-                          {label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                    {label === "Notifications" && unreadCount > 0 && (
-                      <AnimatePresence>
-                        {!sidebarCollapsed && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            className="ml-auto"
-                          >
-                            <Badge className="h-4 text-[10px] px-1.5 bg-primary text-primary-foreground">
-                              {unreadCount}
-                            </Badge>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    )}
-                  </Link>
-                </TooltipTrigger>
-                {sidebarCollapsed && (
-                  <TooltipContent side="right">{label}</TooltipContent>
+              <Link
+                key={href}
+                href={href}
+                title={sidebarCollapsed ? label : undefined}
+                className={cn(
+                  "relative flex items-center gap-3 h-9 px-2.5 rounded-md text-sm transition-all duration-150 group",
+                  active
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                 )}
-              </Tooltip>
+              >
+                {active && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 rounded-md bg-primary/15"
+                    transition={{ duration: 0.2 }}
+                  />
+                )}
+                <Icon
+                  className={cn(
+                    "relative w-4 h-4 shrink-0",
+                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  )}
+                />
+                <AnimatePresence>
+                  {!sidebarCollapsed && (
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.1 }}
+                      className="relative whitespace-nowrap font-medium"
+                    >
+                      {label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
             );
           })}
         </div>
@@ -179,7 +150,7 @@ export function Sidebar() {
                 Recent
               </p>
               <div className="space-y-0.5">
-                {PROCESSES.slice(0, 3).map((p) => (
+                {processes.slice(0, 3).map((p) => (
                   <Link
                     key={p.id}
                     href={`/processes/${p.id}`}
@@ -192,7 +163,7 @@ export function Sidebar() {
                   >
                     <span
                       className={cn(
-                        "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                        "w-1.5 h-1.5 rounded-full shrink-0",
                         STATUS_COLORS[p.status]
                       )}
                     />

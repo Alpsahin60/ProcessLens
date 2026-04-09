@@ -22,6 +22,7 @@ interface AppState {
 
   // Processes
   processes: Process[];
+  setProcesses: (processes: Process[]) => void;
   selectedProcessId: string | null;
   setSelectedProcessId: (id: string | null) => void;
   selectedProcess: () => Process | null;
@@ -64,6 +65,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
 
   processes: PROCESSES,
+  setProcesses: (processes) =>
+    set((state) => ({
+      processes,
+      selectedProcessId:
+        state.selectedProcessId && processes.some((process) => process.id === state.selectedProcessId)
+          ? state.selectedProcessId
+          : processes[0]?.id ?? null,
+    })),
   selectedProcessId: "p1",
   setSelectedProcessId: (id) => set({ selectedProcessId: id }),
   selectedProcess: () => {

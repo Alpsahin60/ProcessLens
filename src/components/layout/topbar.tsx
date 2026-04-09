@@ -5,25 +5,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Bell,
-  ChevronDown,
-  Check,
-  GitBranch,
   AlertTriangle,
   MessageSquare,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 
 const NOTIFICATION_ICONS = {
@@ -95,43 +89,39 @@ export function Topbar({ title, breadcrumbs, actions }: TopbarProps) {
 
         {/* Notifications */}
         <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-8 w-8 hover:bg-white/8"
-            >
-              <Bell className="w-4 h-4 text-muted-foreground" />
-              <AnimatePresence>
-                {unreadCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-background"
-                  />
-                )}
-              </AnimatePresence>
-            </Button>
+          <DropdownMenuTrigger className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors">
+            <Bell className="w-4 h-4" />
+            <AnimatePresence>
+              {unreadCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-background pointer-events-none"
+                />
+              )}
+            </AnimatePresence>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
             className="w-80 bg-popover border-border"
             sideOffset={8}
           >
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-              <DropdownMenuLabel className="p-0 text-sm font-semibold">
-                Notifications
-              </DropdownMenuLabel>
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-xs text-primary hover:text-primary/80 transition-colors"
-                >
-                  Mark all read
-                </button>
-              )}
-            </div>
+            <DropdownMenuGroup>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                <DropdownMenuLabel className="p-0 text-sm font-semibold">
+                  Notifications
+                </DropdownMenuLabel>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+            </DropdownMenuGroup>
             <div className="max-h-80 overflow-y-auto scrollbar-thin">
               {notifications.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground text-sm">
@@ -149,7 +139,7 @@ export function Topbar({ title, breadcrumbs, actions }: TopbarProps) {
                     >
                       <div
                         className={cn(
-                          "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                          "w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
                           !n.read ? "bg-white/8" : "bg-transparent"
                         )}
                       >
@@ -161,7 +151,7 @@ export function Topbar({ title, breadcrumbs, actions }: TopbarProps) {
                             {n.title}
                           </p>
                           {!n.read && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mt-1" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">

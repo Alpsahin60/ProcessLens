@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   GitBranch,
@@ -25,66 +26,25 @@ import {
 } from "recharts";
 import { Topbar } from "@/components/layout/topbar";
 import { Badge } from "@/components/ui/badge";
+import { getDashboardData } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   PROCESSES,
   INSIGHTS,
   ACTIVITY,
   EFFICIENCY_TREND,
-  CYCLE_TIME_TREND,
   PROCESS_VOLUME,
 } from "@/lib/mock-data";
 import { formatDistanceToNow } from "date-fns";
 
-const FADE_UP = {
+const FADE_UP: import("framer-motion").Variants = {
   hidden: { opacity: 0, y: 16 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.06, duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+    transition: { delay: i * 0.06, duration: 0.35 },
   }),
 };
-
-const KPI_CARDS = [
-  {
-    label: "Total Processes",
-    value: "4",
-    trend: "+1 this month",
-    direction: "up" as const,
-    icon: GitBranch,
-    color: "text-primary",
-    bg: "bg-primary/10",
-  },
-  {
-    label: "Avg Cycle Time",
-    value: "68h",
-    trend: "–5.5% vs last week",
-    direction: "down" as const,
-    icon: Clock,
-    color: "text-emerald-400",
-    bg: "bg-emerald-400/10",
-    positive: true,
-  },
-  {
-    label: "Active Bottlenecks",
-    value: "5",
-    trend: "–2 vs last week",
-    direction: "down" as const,
-    icon: AlertTriangle,
-    color: "text-amber-400",
-    bg: "bg-amber-400/10",
-    positive: true,
-  },
-  {
-    label: "Team Members",
-    value: "5",
-    trend: "2 active today",
-    direction: "up" as const,
-    icon: Users,
-    color: "text-cyan-400",
-    bg: "bg-cyan-400/10",
-  },
-];
 
 const STATUS_MAP = {
   active: { label: "Active", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
@@ -99,15 +59,82 @@ const SEVERITY_MAP = {
   info: { cls: "bg-blue-500/10 border-blue-500/20", icon: "text-blue-400", badge: "bg-blue-500/15 text-blue-400" },
 };
 
-const ACTIVITY_ICONS: Record<string, string> = {
-  comment: "💬",
-  edit: "✏️",
-  share: "🔗",
-  alert: "🚨",
-  version: "📦",
-};
-
 export default function DashboardPage() {
+  const [processes, setProcesses] = useState(PROCESSES);
+  const [insights, setInsights] = useState(INSIGHTS);
+  const [efficiencyTrend, setEfficiencyTrend] = useState(EFFICIENCY_TREND);
+  const [processVolume, setProcessVolume] = useState(PROCESS_VOLUME);
+  const [kpis, setKpis] = useState({
+    totalProcesses: 4,
+    avgCycleTimeHours: 68,
+    activeBottlenecks: 5,
+    teamMembers: 5,
+    efficiencyScore: 74,
+    trends: {
+      cycleTime: -5.5,
+      bottlenecks: -2,
+      efficiency: 16,
+    },
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    getDashboardData().then((data) => {
+      if (!active) return;
+      setProcesses(data.processes);
+      setInsights(data.insights);
+      setEfficiencyTrend(data.efficiencyTrend);
+      setProcessVolume(data.processVolume);
+      setKpis(data.kpis);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const kpiCards = [
+    {
+      label: "Total Processes",
+      value: String(kpis.totalProcesses),
+      trend: `${processes.filter((process) => process.status === "active").length} active`,
+      direction: "up" as const,
+      icon: GitBranch,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      label: "Avg Cycle Time",
+      value: `${kpis.avgCycleTimeHours}h`,
+      trend: `${kpis.trends.cycleTime}% vs last week`,
+      direction: "down" as const,
+      icon: Clock,
+      color: "text-emerald-400",
+      bg: "bg-emerald-400/10",
+      positive: true,
+    },
+    {
+      label: "Active Bottlenecks",
+      value: String(kpis.activeBottlenecks),
+      trend: `${kpis.trends.bottlenecks} vs last week`,
+      direction: "down" as const,
+      icon: AlertTriangle,
+      color: "text-amber-400",
+      bg: "bg-amber-400/10",
+      positive: true,
+    },
+    {
+      label: "Team Members",
+      value: String(kpis.teamMembers),
+      trend: `${kpis.efficiencyScore}% efficiency score`,
+      direction: "up" as const,
+      icon: Users,
+      color: "text-cyan-400",
+      bg: "bg-cyan-400/10",
+    },
+  ];
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Topbar
@@ -116,7 +143,7 @@ export default function DashboardPage() {
       <main className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {KPI_CARDS.map((kpi, i) => (
+          {kpiCards.map((kpi, i) => (
             <motion.div
               key={kpi.label}
               custom={i}
@@ -162,14 +189,14 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-foreground">74%</p>
+                <p className="text-xl font-bold text-foreground">{kpis.efficiencyScore}%</p>
                 <p className="text-xs text-emerald-400 flex items-center gap-1 justify-end">
-                  <TrendingUp className="w-3 h-3" /> +16pp since Jan
+                  <TrendingUp className="w-3 h-3" /> +{kpis.trends.efficiency}pp since Jan
                 </p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={EFFICIENCY_TREND} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <AreaChart data={efficiencyTrend} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="effGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -215,7 +242,7 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Instances this week</p>
             </div>
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={PROCESS_VOLUME} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <BarChart data={processVolume} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.3)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.3)" }} tickLine={false} axisLine={false} />
@@ -245,7 +272,7 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="space-y-2">
-              {PROCESSES.map((p) => {
+              {processes.map((p) => {
                 const status = STATUS_MAP[p.status];
                 const maxBottleneck = Math.max(...p.nodes.map((n) => n.bottleneckScore));
                 return (
@@ -260,7 +287,7 @@ export default function DashboardPage() {
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right hidden sm:block">
                         <p className="text-xs font-medium text-foreground">{p.avgCycleTimeHours}h</p>
                         <p className="text-[10px] text-muted-foreground">cycle time</p>
@@ -294,7 +321,7 @@ export default function DashboardPage() {
               {ACTIVITY.slice(0, 6).map((item) => (
                 <div key={item.id} className="flex items-start gap-2.5">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold flex-shrink-0 mt-0.5"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold shrink-0 mt-0.5"
                     style={{ backgroundColor: item.userColor + "20", color: item.userColor }}
                   >
                     {item.userInitials.substring(0, 2)}
@@ -331,11 +358,11 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-foreground">Insights Engine</p>
             </div>
             <Badge className="text-[10px] bg-primary/15 text-primary border-primary/20 border">
-              {INSIGHTS.filter((i) => i.severity === "critical").length} critical
+              {insights.filter((i) => i.severity === "critical").length} critical
             </Badge>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {INSIGHTS.slice(0, 3).map((insight) => {
+            {insights.slice(0, 3).map((insight) => {
               const sev = SEVERITY_MAP[insight.severity];
               return (
                 <Link
@@ -347,7 +374,7 @@ export default function DashboardPage() {
                   )}
                 >
                   <div className="flex items-start gap-2.5 mb-2">
-                    <AlertTriangle className={cn("w-4 h-4 flex-shrink-0 mt-0.5", sev.icon)} />
+                    <AlertTriangle className={cn("w-4 h-4 shrink-0 mt-0.5", sev.icon)} />
                     <p className="text-xs font-semibold text-foreground leading-tight">{insight.title}</p>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">

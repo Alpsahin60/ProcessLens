@@ -3,14 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CommandDialog,
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
   CommandSeparator,
-  CommandShortcut,
 } from "cmdk";
 import {
   LayoutDashboard,
@@ -19,17 +18,15 @@ import {
   Users,
   Settings,
   Plus,
-  Search,
   AlertTriangle,
-  Zap,
 } from "lucide-react";
 import { useAppStore } from "@/store/app-store";
-import { PROCESSES, INSIGHTS } from "@/lib/mock-data";
+import { INSIGHTS } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export function CommandPalette() {
   const router = useRouter();
-  const { commandOpen, setCommandOpen } = useAppStore();
+  const { commandOpen, setCommandOpen, processes } = useAppStore();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -55,7 +52,7 @@ export function CommandPalette() {
       onClick={() => setCommandOpen(false)}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
+      <Command
         className="relative w-full max-w-lg glass-stronger rounded-xl shadow-2xl overflow-hidden border border-white/10"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 25px 60px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)" }}
@@ -65,7 +62,7 @@ export function CommandPalette() {
           className="w-full bg-transparent border-0 border-b border-white/8 px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           autoFocus
         />
-        <CommandList className="max-h-[400px] overflow-y-auto scrollbar-thin p-2">
+        <CommandList className="max-h-100 overflow-y-auto scrollbar-thin p-2">
           <CommandEmpty className="py-8 text-center text-sm text-muted-foreground">
             No results found.
           </CommandEmpty>
@@ -92,7 +89,7 @@ export function CommandPalette() {
           <CommandSeparator className="my-1 border-t border-white/5" />
 
           <CommandGroup heading="Processes">
-            {PROCESSES.map((p) => (
+            {processes.map((p) => (
               <CommandItem
                 key={p.id}
                 onSelect={() => runCommand(() => router.push(`/processes/${p.id}`))}
@@ -108,8 +105,8 @@ export function CommandPalette() {
                     p.status === "active"
                       ? "bg-emerald-500/15 text-emerald-400"
                       : p.status === "optimizing"
-                      ? "bg-amber-500/15 text-amber-400"
-                      : "bg-zinc-500/15 text-zinc-400"
+                        ? "bg-amber-500/15 text-amber-400"
+                        : "bg-zinc-500/15 text-zinc-400"
                   )}
                 >
                   {p.status}
@@ -141,7 +138,7 @@ export function CommandPalette() {
               >
                 <AlertTriangle
                   className={cn(
-                    "w-4 h-4 flex-shrink-0",
+                    "w-4 h-4 shrink-0",
                     insight.severity === "critical"
                       ? "text-red-400"
                       : "text-amber-400"
@@ -172,7 +169,7 @@ export function CommandPalette() {
             close
           </span>
         </div>
-      </div>
+      </Command>
     </div>
   );
 }

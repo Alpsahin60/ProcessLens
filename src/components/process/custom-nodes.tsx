@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { Clock, Zap, GitBranch, CheckSquare, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NodeType } from "@/types";
@@ -43,7 +43,7 @@ const NODE_TYPE_CONFIG: Record<NodeType, { icon: React.ElementType; color: strin
   external: { icon: Zap, color: "text-cyan-400", label: "External" },
 };
 
-interface NodeData {
+export interface ProcessNodeData extends Record<string, unknown> {
   label: string;
   type: NodeType;
   avgDurationHours: number;
@@ -55,7 +55,9 @@ interface NodeData {
   simRemoved?: boolean;
 }
 
-function ProcessNodeBase({ data, selected }: { data: NodeData; selected?: boolean }) {
+type ProcessFlowNode = Node<ProcessNodeData, NodeType>;
+
+function ProcessNodeBase({ data, selected }: NodeProps<ProcessFlowNode>) {
   const config = NODE_TYPE_CONFIG[data.type] ?? NODE_TYPE_CONFIG.task;
   const Icon = config.icon;
   const style = getBottleneckStyle(data.simRemoved ? 0 : data.bottleneckScore);
@@ -66,7 +68,7 @@ function ProcessNodeBase({ data, selected }: { data: NodeData; selected?: boolea
   return (
     <div
       className={cn(
-        "relative px-3.5 pt-3 pb-3 rounded-xl border min-w-[140px] max-w-[180px] transition-all duration-200",
+        "relative px-3.5 pt-3 pb-3 rounded-xl border min-w-35 max-w-45 transition-all duration-200",
         style.border,
         style.bg,
         style.glow,
@@ -77,7 +79,7 @@ function ProcessNodeBase({ data, selected }: { data: NodeData; selected?: boolea
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2.5 !h-2.5 !bg-white/20 !border-white/30 hover:!bg-primary/60 transition-colors"
+        className="w-2.5! h-2.5! bg-white/20! border-white/30! hover:bg-primary/60! transition-colors"
       />
 
       {/* Type badge */}
@@ -107,7 +109,7 @@ function ProcessNodeBase({ data, selected }: { data: NodeData; selected?: boolea
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground font-mono">{timeLabel}</span>
         {data.team && (
-          <span className="text-[10px] text-muted-foreground/60 truncate max-w-[70px]">{data.team}</span>
+          <span className="text-[10px] text-muted-foreground/60 truncate max-w-17.5">{data.team}</span>
         )}
       </div>
 
@@ -122,26 +124,26 @@ function ProcessNodeBase({ data, selected }: { data: NodeData; selected?: boolea
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2.5 !h-2.5 !bg-white/20 !border-white/30 hover:!bg-primary/60 transition-colors"
+        className="w-2.5! h-2.5! bg-white/20! border-white/30! hover:bg-primary/60! transition-colors"
       />
     </div>
   );
 }
 
-export const TaskNode = memo(({ data, selected }: { data: NodeData; selected?: boolean }) => (
-  <ProcessNodeBase data={{ ...data, type: "task" }} selected={selected} />
+export const TaskNode = memo((props: NodeProps<ProcessFlowNode>) => (
+  <ProcessNodeBase {...props} data={{ ...props.data, type: "task" }} />
 ));
 
-export const DecisionNode = memo(({ data, selected }: { data: NodeData; selected?: boolean }) => (
-  <ProcessNodeBase data={{ ...data, type: "decision" }} selected={selected} />
+export const DecisionNode = memo((props: NodeProps<ProcessFlowNode>) => (
+  <ProcessNodeBase {...props} data={{ ...props.data, type: "decision" }} />
 ));
 
-export const DelayNode = memo(({ data, selected }: { data: NodeData; selected?: boolean }) => (
-  <ProcessNodeBase data={{ ...data, type: "delay" }} selected={selected} />
+export const DelayNode = memo((props: NodeProps<ProcessFlowNode>) => (
+  <ProcessNodeBase {...props} data={{ ...props.data, type: "delay" }} />
 ));
 
-export const ExternalNode = memo(({ data, selected }: { data: NodeData; selected?: boolean }) => (
-  <ProcessNodeBase data={{ ...data, type: "external" }} selected={selected} />
+export const ExternalNode = memo((props: NodeProps<ProcessFlowNode>) => (
+  <ProcessNodeBase {...props} data={{ ...props.data, type: "external" }} />
 ));
 
 TaskNode.displayName = "TaskNode";

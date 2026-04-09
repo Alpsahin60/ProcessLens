@@ -21,31 +21,31 @@ import {
   Clock,
   MessageSquare,
   User,
-  AlertTriangle,
   X,
   Zap,
-  GitBranch,
-  CheckSquare,
   Play,
   RotateCcw,
-  Eye,
-  EyeOff,
-  Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
-import { TaskNode, DecisionNode, DelayNode, ExternalNode } from "./custom-nodes";
+import {
+  TaskNode,
+  DecisionNode,
+  DelayNode,
+  ExternalNode,
+  type ProcessNodeData,
+} from "./custom-nodes";
 import type { Process, ProcessNode } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 
-const NODE_TYPES: NodeTypes = {
-  task: TaskNode as unknown as React.ComponentType,
-  decision: DecisionNode as unknown as React.ComponentType,
-  delay: DelayNode as unknown as React.ComponentType,
-  external: ExternalNode as unknown as React.ComponentType,
-};
+const NODE_TYPES = {
+  task: TaskNode,
+  decision: DecisionNode,
+  delay: DelayNode,
+  external: ExternalNode,
+} satisfies NodeTypes;
 
-function toFlowNodes(nodes: ProcessNode[], simRemovedIds: string[]): Node[] {
+function toFlowNodes(nodes: ProcessNode[], simRemovedIds: string[]): Node<ProcessNodeData>[] {
   return nodes.map((n) => ({
     id: n.id,
     type: n.type,
@@ -104,7 +104,7 @@ export function FlowCanvas({ process }: FlowCanvasProps) {
   );
   const initialEdges = useMemo(() => toFlowEdges(process.edges), [process.edges]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect: OnConnect = useCallback(
@@ -348,7 +348,7 @@ export function FlowCanvas({ process }: FlowCanvasProps) {
                   {selectedNode.comments.map((c) => (
                     <div key={c.id} className="flex items-start gap-2.5">
                       <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold flex-shrink-0"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold shrink-0"
                         style={{ backgroundColor: c.userColor + "20", color: c.userColor }}
                       >
                         {c.userInitials}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AreaChart,
@@ -20,16 +20,21 @@ import {
   PolarAngleAxis,
   Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, Clock, AlertTriangle, GitBranch, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, AlertTriangle, GitBranch } from "lucide-react";
 import { Topbar } from "@/components/layout/topbar";
+import {
+  getAnalyticsKpis,
+  getCycleTimeTrend,
+  getEfficiencyTrend,
+  getProcesses,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   PROCESSES,
   EFFICIENCY_TREND,
   CYCLE_TIME_TREND,
-  BOTTLENECK_TREND,
-  PROCESS_VOLUME,
 } from "@/lib/mock-data";
+import type { Process } from "@/types";
 
 const FADE_UP = {
   hidden: { opacity: 0, y: 12 },
@@ -40,12 +45,13 @@ const FADE_UP = {
   }),
 };
 
-const PROCESS_COMPARISON = PROCESSES.map((p) => ({
-  name: p.name.split(" ").slice(0, 2).join(" "),
-  cycleTime: p.avgCycleTimeHours,
-  completion: p.completionRate,
-  bottlenecks: p.nodes.filter((n) => n.bottleneckScore >= 60).length,
-}));
+const toProcessComparison = (processes: Process[]) =>
+  processes.map((process) => ({
+    name: process.name.split(" ").slice(0, 2).join(" "),
+    cycleTime: process.avgCycleTimeHours,
+    completion: process.completionRate,
+    bottlenecks: process.nodes.filter((node) => node.bottleneckScore >= 60).length,
+  }));
 
 const RADAR_DATA = [
   { subject: "Speed", A: 74, B: 65 },
@@ -58,6 +64,45 @@ const RADAR_DATA = [
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<"week" | "month" | "quarter">("month");
+  const [processes, setProcesses] = useState(PROCESSES);
+  const [efficiencyTrend, setEfficiencyTrend] = useState(EFFICIENCY_TREND);
+  const [cycleTimeTrend, setCycleTimeTrend] = useState(CYCLE_TIME_TREND);
+  const [kpis, setKpis] = useState({
+    totalProcesses: PROCESSES.length,
+    avgCycleTimeHours: 68,
+    activeBottlenecks: 5,
+    teamMembers: 5,
+    efficiencyScore: 74,
+    completionRate: 72,
+    trends: {
+      cycleTime: -5.5,
+      bottlenecks: -2,
+      efficiency: 16,
+    },
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all([
+      getProcesses(),
+      getAnalyticsKpis(),
+      getEfficiencyTrend(period),
+      getCycleTimeTrend(),
+    ]).then(([nextProcesses, nextKpis, nextEfficiencyTrend, nextCycleTimeTrend]) => {
+      if (!active) return;
+      setProcesses(nextProcesses);
+      setKpis(nextKpis);
+      setEfficiencyTrend(nextEfficiencyTrend);
+      setCycleTimeTrend(nextCycleTimeTrend);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [period]);
+
+  const processComparison = toProcessComparison(processes);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -88,8 +133,8 @@ export default function AnalyticsPage() {
           {[
             {
               label: "Efficiency Score",
-              value: "74%",
-              change: "+16pp",
+              value: `${kpis.efficiencyScore}%`,
+              change: `+${kpis.trends.efficiency}pp`,
               up: true,
               icon: TrendingUp,
               color: "text-primary",
@@ -97,8 +142,8 @@ export default function AnalyticsPage() {
             },
             {
               label: "Avg Cycle Time",
-              value: "68h",
-              change: "–23% vs Q1",
+              value: `${kpis.avgCycleTimeHours}h`,
+              change: `${kpis.trends.cycleTime}% vs Q1`,
               up: false,
               icon: Clock,
               color: "text-emerald-400",
@@ -107,8 +152,8 @@ export default function AnalyticsPage() {
             },
             {
               label: "Bottleneck Rate",
-              value: "24%",
-              change: "–8pp this month",
+              value: `${Math.max(1, Math.round((kpis.activeBottlenecks / Math.max(processes.length, 1)) * 100))}%`,
+              change: `${kpis.trends.bottlenecks} this month`,
               up: false,
               icon: AlertTriangle,
               color: "text-amber-400",
@@ -117,8 +162,8 @@ export default function AnalyticsPage() {
             },
             {
               label: "Process Instances",
-              value: "100",
-              change: "+18% vs last week",
+              value: String(kpis.totalProcesses),
+              change: "tracked processes",
               up: true,
               icon: GitBranch,
               color: "text-cyan-400",
@@ -159,7 +204,7 @@ export default function AnalyticsPage() {
             <p className="text-sm font-semibold text-foreground mb-1">Efficiency Over Time</p>
             <p className="text-xs text-muted-foreground mb-4">Composite score across all processes</p>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={EFFICIENCY_TREND} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <AreaChart data={efficiencyTrend} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
@@ -180,7 +225,7 @@ export default function AnalyticsPage() {
             <p className="text-sm font-semibold text-foreground mb-1">Cycle Time Reduction</p>
             <p className="text-xs text-muted-foreground mb-4">Average hours per process instance</p>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={CYCLE_TIME_TREND} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <LineChart data={cycleTimeTrend} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
@@ -197,7 +242,7 @@ export default function AnalyticsPage() {
             <p className="text-sm font-semibold text-foreground mb-1">Process Comparison</p>
             <p className="text-xs text-muted-foreground mb-4">Cycle time vs completion rate by process</p>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={PROCESS_COMPARISON} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <BarChart data={processComparison} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
@@ -239,7 +284,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {PROCESSES.map((p) => {
+                {processes.map((p) => {
                   const bottlenecks = p.nodes.filter((n) => n.bottleneckScore >= 60);
                   const efficiency = Math.round((p.completionRate * (1 - bottlenecks.length * 0.1)));
                   return (

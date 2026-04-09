@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -10,11 +10,10 @@ import {
   AlertTriangle,
   Clock,
   ArrowRight,
-  Filter,
 } from "lucide-react";
 import { Topbar } from "@/components/layout/topbar";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { getProcesses } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { PROCESSES } from "@/lib/mock-data";
 import { formatDistanceToNow } from "date-fns";
@@ -26,20 +25,35 @@ const STATUS_MAP = {
   archived: { label: "Archived", cls: "bg-zinc-700/30 text-zinc-500 border-zinc-700/20" },
 };
 
-const FADE_UP = {
+const FADE_UP: import("framer-motion").Variants = {
   hidden: { opacity: 0, y: 12 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.05, duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+    transition: { delay: i * 0.05, duration: 0.3 },
   }),
 };
 
 export default function ProcessesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [processes, setProcesses] = useState(PROCESSES);
 
-  const filtered = PROCESSES.filter((p) => {
+  useEffect(() => {
+    let active = true;
+
+    getProcesses().then((data) => {
+      if (active) {
+        setProcesses(data);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filtered = processes.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -95,20 +109,20 @@ export default function ProcessesPage() {
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           {[
-            { label: "Total", value: PROCESSES.length, color: "text-foreground" },
+            { label: "Total", value: processes.length, color: "text-foreground" },
             {
               label: "Active",
-              value: PROCESSES.filter((p) => p.status === "active").length,
+              value: processes.filter((p) => p.status === "active").length,
               color: "text-emerald-400",
             },
             {
               label: "Bottlenecks",
-              value: PROCESSES.flatMap((p) => p.nodes).filter((n) => n.bottleneckScore >= 60).length,
+              value: processes.flatMap((p) => p.nodes).filter((n) => n.bottleneckScore >= 60).length,
               color: "text-red-400",
             },
             {
               label: "Avg Cycle",
-              value: `${Math.round(PROCESSES.reduce((a, p) => a + p.avgCycleTimeHours, 0) / PROCESSES.length)}h`,
+              value: `${Math.round(processes.reduce((a, p) => a + p.avgCycleTimeHours, 0) / Math.max(processes.length, 1))}h`,
               color: "text-primary",
             },
           ].map((stat, i) => (
@@ -140,7 +154,6 @@ export default function ProcessesPage() {
             {filtered.map((p, i) => {
               const status = STATUS_MAP[p.status];
               const bottlenecks = p.nodes.filter((n) => n.bottleneckScore >= 60);
-              const maxScore = Math.max(...p.nodes.map((n) => n.bottleneckScore));
               return (
                 <motion.div
                   key={p.id}
@@ -166,7 +179,7 @@ export default function ProcessesPage() {
                         </h3>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{p.description}</p>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0 ml-3 mt-1" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 ml-3 mt-1" />
                     </div>
 
                     {/* Metrics */}
