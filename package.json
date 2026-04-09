@@ -1,6 +1,7 @@
 {
   "name": "frontend",
   "version": "0.1.0",
+  "description": "ProcessLens frontend for workflow mapping, bottleneck detection, and operational analytics.",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3005",

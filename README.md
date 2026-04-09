@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ProcessLens
 
-## Getting Started
+ProcessLens is a modern workflow intelligence dashboard for **visualizing business processes**, **detecting bottlenecks**, and **tracking operational efficiency** through a polished, interactive interface.
 
-First, run the development server:
+It is designed for ops teams, product managers, and process owners who want to make hidden workflow friction visible and actionable.
+
+---
+
+## ✨ Features
+
+- **Interactive process mapping** with task, decision, delay, and external nodes
+- **Bottleneck scoring** to quickly identify risky or slow workflow steps
+- **Operational analytics** with KPI cards, trends, and comparison charts
+- **Scenario simulation** for testing process changes before rollout
+- **Team and collaboration views** for shared process ownership
+- **API-ready frontend** with graceful fallback to demo data when the backend is unavailable
+
+---
+
+## 🛠 Tech Stack
+
+- **Framework:** Next.js 16, React 19, TypeScript
+- **Styling:** Tailwind CSS 4
+- **State:** Zustand
+- **Charts:** Recharts
+- **Flow UI:** `@xyflow/react`
+- **Animations:** Framer Motion
+- **UI primitives:** Base UI / custom components
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** 22+
+- **npm** 10+
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs at:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend:** `http://localhost:3005`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🔌 Backend Integration
 
-To learn more about Next.js, take a look at the following resources:
+If a local ProcessLens API is available at:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+http://localhost:4000/api/v1
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+…the frontend automatically loads live process and analytics data.
 
-## Deploy on Vercel
+If the API is not available, the app falls back to bundled demo data so the interface still works out of the box.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📜 Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the local development server on port `3005` |
+| `npm run build` | Create an optimized production build |
+| `npm run start` | Run the production build locally |
+| `npm run lint` | Run ESLint checks |
+
+---
+
+## 📁 Project Structure
+
+```text
+src/
+  app/                # App Router pages and layouts
+  components/         # Shared UI, layout, and process visualization components
+  lib/                # API helpers, mock data, and utilities
+  store/              # Zustand application state
+  types/              # Shared TypeScript types
+```
+
+---
+
+## 🎯 Project Goal
+
+ProcessLens aims to turn vague, hard-to-explain workflow problems into something teams can **see**, **measure**, and **improve**.
+
+Instead of static documentation or scattered process notes, it provides a living operational view of how work actually flows.
+
+---
+
+## 📌 Status
+
+This repository currently contains the **frontend application** for ProcessLens and is actively set up for local development, UI iteration, and backend integration.
+
+---
+
+## License
+
+Private project for development and portfolio use.
+
