@@ -29,28 +29,36 @@ import {
   getProcesses,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import {
-  PROCESSES,
-  EFFICIENCY_TREND,
-  CYCLE_TIME_TREND,
-} from "@/lib/mock-data";
+import { PROCESSES, EFFICIENCY_TREND, CYCLE_TIME_TREND } from "@/lib/mock-data";
 import type { Process } from "@/types";
 
-const FADE_UP = {
-  hidden: { opacity: 0, y: 12 },
+const FADE_UP: import("framer-motion").Variants = {
+  hidden: { opacity: 0, y: 14 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.07, duration: 0.3 },
+    transition: { delay: i * 0.07, duration: 0.35, ease: "easeOut" },
   }),
 };
 
+const CHART_TOOLTIP_STYLE = {
+  contentStyle: {
+    background: "oklch(0.098 0.012 265)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "12px",
+    fontSize: "12px",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+  },
+  labelStyle: { color: "oklch(0.96 0.005 260)", fontWeight: 600 },
+  cursor: { stroke: "rgba(99,102,241,0.2)", strokeWidth: 1 },
+};
+
 const toProcessComparison = (processes: Process[]) =>
-  processes.map((process) => ({
-    name: process.name.split(" ").slice(0, 2).join(" "),
-    cycleTime: process.avgCycleTimeHours,
-    completion: process.completionRate,
-    bottlenecks: process.nodes.filter((node) => node.bottleneckScore >= 60).length,
+  processes.map((p) => ({
+    name: p.name.split(" ").slice(0, 2).join(" "),
+    cycleTime: p.avgCycleTimeHours,
+    completion: p.completionRate,
+    bottlenecks: p.nodes.filter((n) => n.bottleneckScore >= 60).length,
   }));
 
 const RADAR_DATA = [
@@ -61,6 +69,10 @@ const RADAR_DATA = [
   { subject: "Handoffs", A: 55, B: 45 },
   { subject: "Clarity", A: 88, B: 72 },
 ];
+
+const CARD_STYLE = {
+  boxShadow: "0 1px 0 oklch(1 0 0 / 0.06) inset, 0 4px 16px oklch(0 0 0 / 0.18)",
+};
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<"week" | "month" | "quarter">("month");
@@ -74,32 +86,21 @@ export default function AnalyticsPage() {
     teamMembers: 5,
     efficiencyScore: 74,
     completionRate: 72,
-    trends: {
-      cycleTime: -5.5,
-      bottlenecks: -2,
-      efficiency: 16,
-    },
+    trends: { cycleTime: -5.5, bottlenecks: -2, efficiency: 16 },
   });
 
   useEffect(() => {
     let active = true;
-
-    Promise.all([
-      getProcesses(),
-      getAnalyticsKpis(),
-      getEfficiencyTrend(period),
-      getCycleTimeTrend(),
-    ]).then(([nextProcesses, nextKpis, nextEfficiencyTrend, nextCycleTimeTrend]) => {
-      if (!active) return;
-      setProcesses(nextProcesses);
-      setKpis(nextKpis);
-      setEfficiencyTrend(nextEfficiencyTrend);
-      setCycleTimeTrend(nextCycleTimeTrend);
-    });
-
-    return () => {
-      active = false;
-    };
+    Promise.all([getProcesses(), getAnalyticsKpis(), getEfficiencyTrend(period), getCycleTimeTrend()]).then(
+      ([nextProcesses, nextKpis, nextEfficiencyTrend, nextCycleTimeTrend]) => {
+        if (!active) return;
+        setProcesses(nextProcesses);
+        setKpis(nextKpis);
+        setEfficiencyTrend(nextEfficiencyTrend);
+        setCycleTimeTrend(nextCycleTimeTrend);
+      }
+    );
+    return () => { active = false; };
   }, [period]);
 
   const processComparison = toProcessComparison(processes);
@@ -109,15 +110,15 @@ export default function AnalyticsPage() {
       <Topbar
         breadcrumbs={[{ label: "Analytics" }]}
         actions={
-          <div className="flex items-center gap-1.5 p-0.5 rounded-lg bg-white/5 border border-white/8">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-xl border border-white/8 bg-white/3">
             {(["week", "month", "quarter"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={cn(
-                  "h-7 px-3 rounded-md text-xs font-medium capitalize transition-all",
+                  "h-7 px-3.5 rounded-lg text-xs font-medium capitalize transition-all duration-200 cursor-pointer",
                   period === p
-                    ? "bg-white/10 text-foreground"
+                    ? "bg-white/10 text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -127,7 +128,18 @@ export default function AnalyticsPage() {
           </div>
         }
       />
-      <main className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6 space-y-6">
+
+      <main className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6 space-y-5">
+        {/* Page header */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Performance insights across all processes</p>
+        </motion.div>
+
         {/* KPI row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -138,7 +150,8 @@ export default function AnalyticsPage() {
               up: true,
               icon: TrendingUp,
               color: "text-primary",
-              bg: "bg-primary/10",
+              iconBg: "bg-primary/12",
+              stripe: "from-primary/10",
             },
             {
               label: "Avg Cycle Time",
@@ -147,7 +160,8 @@ export default function AnalyticsPage() {
               up: false,
               icon: Clock,
               color: "text-emerald-400",
-              bg: "bg-emerald-400/10",
+              iconBg: "bg-emerald-400/12",
+              stripe: "from-emerald-400/8",
               positive: true,
             },
             {
@@ -157,7 +171,8 @@ export default function AnalyticsPage() {
               up: false,
               icon: AlertTriangle,
               color: "text-amber-400",
-              bg: "bg-amber-400/10",
+              iconBg: "bg-amber-400/12",
+              stripe: "from-amber-400/8",
               positive: true,
             },
             {
@@ -167,7 +182,8 @@ export default function AnalyticsPage() {
               up: true,
               icon: GitBranch,
               color: "text-cyan-400",
-              bg: "bg-cyan-400/10",
+              iconBg: "bg-cyan-400/12",
+              stripe: "from-cyan-400/8",
             },
           ].map((kpi, i) => (
             <motion.div
@@ -176,61 +192,60 @@ export default function AnalyticsPage() {
               initial="hidden"
               animate="visible"
               variants={FADE_UP}
-              className="p-5 rounded-xl border border-border bg-card"
+              className="relative p-5 rounded-2xl border border-border bg-card overflow-hidden cursor-default"
+              style={CARD_STYLE}
             >
-              <div className="flex items-start justify-between mb-4">
-                <p className="text-xs font-medium text-muted-foreground">{kpi.label}</p>
-                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", kpi.bg)}>
-                  <kpi.icon className={cn("w-4 h-4", kpi.color)} />
+              <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent pointer-events-none", kpi.stripe)} />
+              <div className="relative">
+                <div className="flex items-start justify-between mb-4">
+                  <p className="text-xs font-medium text-muted-foreground">{kpi.label}</p>
+                  <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", kpi.iconBg)}>
+                    <kpi.icon className={cn("w-4 h-4", kpi.color)} />
+                  </div>
                 </div>
+                <p className="text-2xl font-bold text-foreground tracking-tight mb-1.5 font-mono">{kpi.value}</p>
+                <p className={cn("text-xs flex items-center gap-1 font-medium", kpi.positive ? "text-emerald-400" : kpi.up ? "text-emerald-400" : "text-muted-foreground")}>
+                  {kpi.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {kpi.change}
+                </p>
               </div>
-              <p className="text-2xl font-bold text-foreground tracking-tight mb-1">{kpi.value}</p>
-              <p
-                className={cn(
-                  "text-xs flex items-center gap-1",
-                  kpi.positive ? "text-emerald-400" : kpi.up ? "text-emerald-400" : "text-muted-foreground"
-                )}
-              >
-                {kpi.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {kpi.change}
-              </p>
             </motion.div>
           ))}
         </div>
 
         {/* Charts row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <motion.div custom={4} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-xl border border-border bg-card">
+          <motion.div custom={4} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-2xl border border-border bg-card" style={CARD_STYLE}>
             <p className="text-sm font-semibold text-foreground mb-1">Efficiency Over Time</p>
-            <p className="text-xs text-muted-foreground mb-4">Composite score across all processes</p>
+            <p className="text-xs text-muted-foreground mb-5">Composite score across all processes</p>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={efficiencyTrend} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <AreaChart data={efficiencyTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
                     <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} domain={[40, 100]} />
-                <Tooltip contentStyle={{ background: "oklch(0.10 0.01 265)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "12px" }} />
-                <Area type="monotone" dataKey="baseline" stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" fill="none" strokeWidth={1} />
-                <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2.5} fill="url(#g1)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)" }} tickLine={false} axisLine={false} domain={[40, 100]} />
+                <Tooltip {...CHART_TOOLTIP_STYLE} />
+                <Area type="monotone" dataKey="baseline" stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" fill="none" strokeWidth={1} />
+                <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2.5} fill="url(#g1)" dot={false} activeDot={{ r: 4, fill: "#6366f1", strokeWidth: 2, stroke: "#fff" }} />
               </AreaChart>
             </ResponsiveContainer>
           </motion.div>
 
-          <motion.div custom={5} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-xl border border-border bg-card">
+          <motion.div custom={5} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-2xl border border-border bg-card" style={CARD_STYLE}>
             <p className="text-sm font-semibold text-foreground mb-1">Cycle Time Reduction</p>
-            <p className="text-xs text-muted-foreground mb-4">Average hours per process instance</p>
+            <p className="text-xs text-muted-foreground mb-5">Average hours per process instance</p>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={cycleTimeTrend} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "oklch(0.10 0.01 265)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "12px" }} />
-                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2.5} dot={{ fill: "#10b981", r: 3 }} activeDot={{ r: 5 }} />
+              <LineChart data={cycleTimeTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)" }} tickLine={false} axisLine={false} />
+                <Tooltip {...CHART_TOOLTIP_STYLE} />
+                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2.5} dot={{ fill: "#10b981", r: 3, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }} />
               </LineChart>
             </ResponsiveContainer>
           </motion.div>
@@ -238,31 +253,41 @@ export default function AnalyticsPage() {
 
         {/* Charts row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <motion.div custom={6} initial="hidden" animate="visible" variants={FADE_UP} className="lg:col-span-2 p-5 rounded-xl border border-border bg-card">
+          <motion.div custom={6} initial="hidden" animate="visible" variants={FADE_UP} className="lg:col-span-2 p-5 rounded-2xl border border-border bg-card" style={CARD_STYLE}>
             <p className="text-sm font-semibold text-foreground mb-1">Process Comparison</p>
-            <p className="text-xs text-muted-foreground mb-4">Cycle time vs completion rate by process</p>
+            <p className="text-xs text-muted-foreground mb-5">Cycle time vs completion rate by process</p>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={processComparison} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "oklch(0.10 0.01 265)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "12px" }} />
+              <BarChart data={processComparison} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <defs>
+                  <linearGradient id="bCycle" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.62 0.24 278)" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="oklch(0.62 0.24 278)" stopOpacity={0.4} />
+                  </linearGradient>
+                  <linearGradient id="bCompl" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.30)" }} tickLine={false} axisLine={false} />
+                <Tooltip {...CHART_TOOLTIP_STYLE} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }} />
-                <Bar dataKey="cycleTime" fill="rgba(99,102,241,0.6)" radius={[3, 3, 0, 0]} name="Cycle Time (h)" />
-                <Bar dataKey="completion" fill="rgba(16,185,129,0.6)" radius={[3, 3, 0, 0]} name="Completion %" />
+                <Bar dataKey="cycleTime" fill="url(#bCycle)" radius={[4, 4, 0, 0]} name="Cycle Time (h)" />
+                <Bar dataKey="completion" fill="url(#bCompl)" radius={[4, 4, 0, 0]} name="Completion %" />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>
 
-          <motion.div custom={7} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-xl border border-border bg-card">
+          <motion.div custom={7} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-2xl border border-border bg-card" style={CARD_STYLE}>
             <p className="text-sm font-semibold text-foreground mb-1">Performance Radar</p>
-            <p className="text-xs text-muted-foreground mb-4">Current vs target</p>
+            <p className="text-xs text-muted-foreground mb-5">Current vs target</p>
             <ResponsiveContainer width="100%" height={200}>
               <RadarChart data={RADAR_DATA}>
-                <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }} />
-                <Radar name="Current" dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
-                <Radar name="Target" dataKey="B" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeDasharray="4 4" />
+                <PolarGrid stroke="rgba(255,255,255,0.07)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.38)" }} />
+                <Radar name="Current" dataKey="A" stroke="oklch(0.62 0.24 278)" fill="oklch(0.62 0.24 278)" fillOpacity={0.2} />
+                <Radar name="Target" dataKey="B" stroke="#10b981" fill="#10b981" fillOpacity={0.08} strokeDasharray="4 4" />
                 <Legend wrapperStyle={{ fontSize: "11px" }} />
               </RadarChart>
             </ResponsiveContainer>
@@ -270,14 +295,14 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Process breakdown table */}
-        <motion.div custom={8} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-xl border border-border bg-card">
-          <p className="text-sm font-semibold text-foreground mb-4">Process Breakdown</p>
+        <motion.div custom={8} initial="hidden" animate="visible" variants={FADE_UP} className="p-5 rounded-2xl border border-border bg-card" style={CARD_STYLE}>
+          <p className="text-sm font-semibold text-foreground mb-5">Process Breakdown</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
                   {["Process", "Status", "Cycle Time", "Completion", "Bottlenecks", "Efficiency"].map((h) => (
-                    <th key={h} className="text-left text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 pb-3 pr-4">
+                    <th key={h} className="text-left text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 pb-3 pr-4">
                       {h}
                     </th>
                   ))}
@@ -286,39 +311,45 @@ export default function AnalyticsPage() {
               <tbody>
                 {processes.map((p) => {
                   const bottlenecks = p.nodes.filter((n) => n.bottleneckScore >= 60);
-                  const efficiency = Math.round((p.completionRate * (1 - bottlenecks.length * 0.1)));
+                  const efficiency = Math.round(p.completionRate * (1 - bottlenecks.length * 0.1));
                   return (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-white/3 transition-colors">
-                      <td className="py-3 pr-4">
-                        <p className="text-xs font-medium text-foreground">{p.name}</p>
+                    <tr key={p.id} className="border-b border-border/40 hover:bg-white/2 transition-colors">
+                      <td className="py-3.5 pr-4">
+                        <p className="text-xs font-semibold text-foreground">{p.name}</p>
                         <p className="text-[10px] text-muted-foreground">{p.nodes.length} nodes</p>
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3.5 pr-4">
                         <span className={cn(
-                          "text-[10px] px-1.5 py-0.5 rounded font-medium",
-                          p.status === "active" ? "bg-emerald-500/15 text-emerald-400" :
-                          p.status === "optimizing" ? "bg-amber-500/15 text-amber-400" :
-                          "bg-zinc-500/15 text-zinc-400"
+                          "text-[10px] px-2 py-0.5 rounded-lg font-semibold border",
+                          p.status === "active" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" :
+                          p.status === "optimizing" ? "bg-amber-500/15 text-amber-400 border-amber-500/20" :
+                          "bg-zinc-500/15 text-zinc-400 border-zinc-500/20"
                         )}>
                           {p.status}
                         </span>
                       </td>
-                      <td className="py-3 pr-4 font-mono text-xs text-foreground">{p.avgCycleTimeHours}h</td>
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1 w-16 rounded-full bg-white/8">
-                            <div className="h-full rounded-full bg-primary/60" style={{ width: `${p.completionRate}%` }} />
+                      <td className="py-3.5 pr-4 font-mono text-xs font-semibold text-foreground">{p.avgCycleTimeHours}h</td>
+                      <td className="py-3.5 pr-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-1.5 w-16 rounded-full overflow-hidden" style={{ background: "oklch(1 0 0 / 0.06)" }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${p.completionRate}%`,
+                                background: "linear-gradient(90deg, oklch(0.62 0.24 278 / 0.8), oklch(0.62 0.24 278 / 0.5))",
+                              }}
+                            />
                           </div>
-                          <span className="text-xs text-foreground">{p.completionRate}%</span>
+                          <span className="text-xs font-mono font-semibold text-foreground">{p.completionRate}%</span>
                         </div>
                       </td>
-                      <td className="py-3 pr-4">
-                        <span className={cn("text-xs font-medium", bottlenecks.length > 0 ? "text-red-400" : "text-emerald-400")}>
+                      <td className="py-3.5 pr-4">
+                        <span className={cn("text-xs font-bold font-mono", bottlenecks.length > 0 ? "text-red-400" : "text-emerald-400")}>
                           {bottlenecks.length}
                         </span>
                       </td>
-                      <td className="py-3">
-                        <span className={cn("text-xs font-semibold", efficiency >= 70 ? "text-emerald-400" : efficiency >= 50 ? "text-amber-400" : "text-red-400")}>
+                      <td className="py-3.5">
+                        <span className={cn("text-xs font-bold font-mono", efficiency >= 70 ? "text-emerald-400" : efficiency >= 50 ? "text-amber-400" : "text-red-400")}>
                           {efficiency}%
                         </span>
                       </td>
