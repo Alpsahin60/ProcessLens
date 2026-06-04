@@ -1,112 +1,206 @@
 # ProcessLens
 
-ProcessLens is a modern workflow intelligence dashboard for **visualizing business processes**, **detecting bottlenecks**, and **tracking operational efficiency** through a polished, interactive interface.
+A workflow intelligence dashboard for visualising business processes,
+scoring bottlenecks, and tracking operational efficiency.
 
-It is designed for ops teams, product managers, and process owners who want to make hidden workflow friction visible and actionable.
+Built as a portfolio / learning project to explore Next.js 16's App Router,
+React 19 client patterns, design-token-driven theming, and interactive
+flow diagrams.
 
----
-
-## ✨ Features
-
-- **Interactive process mapping** with task, decision, delay, and external nodes
-- **Bottleneck scoring** to quickly identify risky or slow workflow steps
-- **Operational analytics** with KPI cards, trends, and comparison charts
-- **Scenario simulation** for testing process changes before rollout
-- **Team and collaboration views** for shared process ownership
-- **API-ready frontend** with graceful fallback to demo data when the backend is unavailable
+> **Scope of this repository:** This repo contains the **frontend** (Next.js)
+> only. It ships with bundled demo data so the app runs standalone with no
+> backend. An optional companion REST API (see [Backend Integration](#backend-integration))
+> is consumed if reachable, otherwise the UI falls back to the demo data.
 
 ---
 
-## 🛠 Tech Stack
+## Features
 
-- **Framework:** Next.js 16, React 19, TypeScript
-- **Styling:** Tailwind CSS 4
-- **State:** Zustand
+What's actually implemented in this codebase today:
+
+- **Marketing landing page** at `/` with hero, animated flow preview, feature
+  grid, and pricing layout (Framer Motion + custom SVG).
+- **Application shell** (under `/dashboard`, `/processes`, `/analytics`,
+  `/team`, `/settings`) with collapsible sidebar, topbar, and a
+  ⌘K command palette (`cmdk`).
+- **Process pages**
+  - `/processes` — searchable, filterable grid of mapped processes with
+    cycle time, completion rate, and bottleneck counters.
+  - `/processes/[id]` — detail view with three modes (flow / table / timeline)
+    and an interactive `@xyflow/react` canvas.
+- **Custom node types** for the flow canvas: `task`, `decision`, `delay`,
+  `external`.
+- **Bottleneck scoring** (0–100) rendered as a coloured badge / glow per node
+  (green → amber → red).
+- **Scenario simulation** — toggle nodes off in the canvas and see the
+  projected cycle-time reduction recomputed live (state in Zustand).
+- **Dashboard** with KPI cards, an efficiency-trend area chart, a
+  process-volume bar chart, recent processes, an activity feed, and an
+  insights panel (Recharts).
+- **Analytics page** with KPI tiles and trend charts wired to the same
+  data layer.
+- **Team page** — static viewer of team members, roles, and last-active
+  times (mock data only; no auth, no invites).
+- **Settings page** — UI shell with sections for profile, notifications,
+  security, integrations, data export, and webhooks (form layout only;
+  values are not persisted).
+- **API client with graceful fallback** — every data call attempts the
+  backend first and silently falls back to bundled fixtures on failure
+  (`src/lib/api.ts`).
+
+---
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router), React 19, TypeScript 5
+- **Styling:** Tailwind CSS 4, design tokens in `src/app/globals.css`
+- **State:** Zustand (`src/store/app-store.ts`)
 - **Charts:** Recharts
-- **Flow UI:** `@xyflow/react`
+- **Flow canvas:** `@xyflow/react`
 - **Animations:** Framer Motion
-- **UI primitives:** Base UI / custom components
+- **UI primitives:** Base UI + custom components in `src/components/ui/`
+  (shadcn-style, not the shadcn CLI)
+- **Icons:** Lucide
+- **Date utilities:** date-fns
+- **Command palette:** cmdk
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- **Node.js** 22+
-- **npm** 10+
+- Node.js 22+
+- npm 10+
 
-### Install dependencies
+### Install & run
 
 ```bash
 npm install
-```
-
-### Start the development server
-
-```bash
 npm run dev
 ```
 
-The app runs at:
+The dev server starts on **`http://localhost:3005`** (port pinned in
+`package.json`).
 
-- **Frontend:** `http://localhost:3005`
+### Available scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev`   | Start the dev server on port `3005` |
+| `npm run build` | Production build (`next build`) |
+| `npm run start` | Run the production build |
+| `npm run lint`  | Run ESLint |
 
 ---
 
-## 🔌 Backend Integration
+## Project Structure
 
-If a local ProcessLens API is available at:
+```text
+src/
+  app/
+    (marketing)/       # Public landing page (/)
+    (app)/             # Authenticated app shell
+      dashboard/       # KPI dashboard
+      processes/       # List + detail (/processes, /processes/[id])
+      analytics/       # Charts & KPIs
+      team/            # Team viewer (mock)
+      settings/        # Settings UI shell
+    layout.tsx         # Root layout
+    globals.css        # Design tokens + base styles
+  components/
+    layout/            # Sidebar, topbar, command palette
+    process/           # Flow canvas + custom nodes
+    ui/                # Buttons, cards, inputs, dialogs, …
+  lib/
+    api.ts             # Fetch layer with mock-data fallback
+    mock-data.ts       # Bundled demo processes, insights, team
+    utils.ts           # cn() helper
+  store/
+    app-store.ts       # Zustand store (UI state, simulation)
+  types/
+    index.ts           # Shared types: Process, ProcessNode, Insight, …
+```
+
+---
+
+## Backend Integration
+
+The frontend expects an optional REST API at:
 
 ```text
 http://localhost:4000/api/v1
 ```
 
-…the frontend automatically loads live process and analytics data.
+(override via `NEXT_PUBLIC_API_URL`).
 
-If the API is not available, the app falls back to bundled demo data so the interface still works out of the box.
+Endpoints currently consumed by the UI:
 
----
+| Method | Path |
+| --- | --- |
+| GET | `/processes` |
+| GET | `/processes/:id` |
+| GET | `/processes/:id/insights` |
+| GET | `/analytics/kpis` |
+| GET | `/analytics/efficiency-trend` |
+| GET | `/analytics/cycle-time-trend` |
+| GET | `/analytics/process-volume` |
+| GET | `/analytics/insights` |
 
-## 📜 Available Scripts
+If the API is unreachable, the client transparently returns the matching
+fixture from `src/lib/mock-data.ts`, so the app remains fully explorable
+without a backend.
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the local development server on port `3005` |
-| `npm run build` | Create an optimized production build |
-| `npm run start` | Run the production build locally |
-| `npm run lint` | Run ESLint checks |
-
----
-
-## 📁 Project Structure
-
-```text
-src/
-  app/                # App Router pages and layouts
-  components/         # Shared UI, layout, and process visualization components
-  lib/                # API helpers, mock data, and utilities
-  store/              # Zustand application state
-  types/              # Shared TypeScript types
-```
+> **Note:** The companion backend (a NestJS service serving these
+> endpoints from in-memory data) lives outside this repository.
 
 ---
 
-## 🎯 Project Goal
+## Screenshots
 
-ProcessLens aims to turn vague, hard-to-explain workflow problems into something teams can **see**, **measure**, and **improve**.
+<!--
+Add screenshots here once captured. Suggested locations:
 
-Instead of static documentation or scattered process notes, it provides a living operational view of how work actually flows.
+  public/screenshots/landing.png
+  public/screenshots/dashboard.png
+  public/screenshots/process-detail.png
+  public/screenshots/analytics.png
+
+Then reference them like:
+
+  ![Landing page](public/screenshots/landing.png)
+  ![Dashboard](public/screenshots/dashboard.png)
+  ![Process detail with flow canvas](public/screenshots/process-detail.png)
+  ![Analytics](public/screenshots/analytics.png)
+-->
 
 ---
 
-## 📌 Status
+## Status / TODO
 
-This repository currently contains the **frontend application** for ProcessLens and is actively set up for local development, UI iteration, and backend integration.
+This is an actively iterated portfolio project. The UI is the focus;
+several surfaces are intentionally not yet wired up:
+
+- **No authentication.** "Sign in" routes directly to `/dashboard`. No
+  user accounts, sessions, or RBAC are implemented.
+- **No persistence layer.** Settings, profile edits, and process edits
+  are not saved (no DB, no localStorage write path).
+- **Team collaboration is read-only.** The `/team` page renders mock
+  members. Comments, @mentions, and activity-feed writes are not built.
+- **Insights are not really computed.** The "Insights Engine" panel
+  displays pre-authored insight records. There is no rule engine
+  evaluating live process data on the frontend.
+- **Landing page social proof is placeholder.** Testimonials, stats
+  ("500+ teams"), and pricing are layout content, not real data.
+- **No tests yet.** No unit, integration, or E2E tests have been added
+  to the frontend.
+- **TanStack Query is installed but unused.** Data fetching currently
+  uses plain `fetch` + `useEffect`; a Query-based refactor is on the list.
+- **Companion backend is not in this repo.** The frontend works
+  standalone via fallback fixtures.
 
 ---
 
 ## License
 
-Private project for development and portfolio use.
-
+Private project, used for development and portfolio purposes.
